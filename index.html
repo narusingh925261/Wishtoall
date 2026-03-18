@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>रंगीन आतिशबाज़ी - बधाई कार्ड</title>
+    <!-- फोटो डाउनलोड के लिए लाइब्रेरी -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; font-family: 'Arial', sans-serif; background: #000; overflow-x: hidden; color: white; }
+
+        /* बैकग्राउंड कैनवस (पटाखों के लिए) */
+        #fireworksCanvas {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1; /* यह सब के पीछे रहेगा */
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            z-index: 1;
+        }
+
+        /* बधाई कार्ड */
+        #badhaiCard {
+            width: 100%;
+            max-width: 450px;
+            min-height: 520px;
+            border-radius: 25px;
+            display: none; 
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 30px;
+            box-shadow: 0 0 50px rgba(255, 215, 0, 0.6);
+            border: 6px solid #ffd700;
+            background-size: cover;
+            background-position: center;
+            margin-bottom: 20px;
+            position: relative;
+            box-sizing: border-box;
+        }
+
+        #cardTitle { font-size: 2.5rem; color: #fff; margin: 0; text-shadow: 0 0 20px #ff0000; }
+        
+        /* अपलोड की गई फोटो */
+        #userPhoto {
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            border: 5px solid gold;
+            object-fit: cover;
+            margin: 20px 0;
+            box-shadow: 0 0 20px #fff;
+            display: none;
+        }
+
+        #cardMessage { font-size: 1.5rem; font-weight: bold; margin: 15px; color: #fff; text-shadow: 2px 2px 8px #000; }
+        .from-tag { font-size: 1.2rem; background: gold; color: #000; padding: 7px 25px; border-radius: 50px; font-weight: bold; }
+
+        /* बटन स्टाइल */
+        .btn-group { display: none; flex-direction: column; gap: 12px; width: 100%; max-width: 400px; margin-bottom: 30px; }
+        .btn { padding: 15px; border-radius: 12px; font-weight: bold; font-size: 18px; cursor: pointer; text-align: center; border: none; color: white; text-decoration: none; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .btn-wa { background: linear-gradient(45deg, #25D366, #128C7E); }
+        .btn-dl { background: linear-gradient(45deg, #e74c3c, #c0392b); }
+
+        /* फॉर्म एरिया */
+        .form-area {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 400px;
+            color: #333;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        h1 { font-size: 1.6rem; color: #880e4f; text-align: center; margin-bottom: 20px; }
+        label { font-weight: bold; margin-top: 10px; display: block; }
+        input, select { width: 100%; padding: 12px; margin: 8px 0; border: 2px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 16px; }
+        .create-btn { background: #880e4f; color: white; width: 100%; border: none; padding: 16px; border-radius: 10px; font-weight: bold; font-size: 18px; cursor: pointer; margin-top: 15px; transition: 0.3s; }
+        .create-btn:hover { background: #ad1457; }
+
+        .footer { margin-top: 20px; font-size: 14px; color: #fff; text-align: center; text-shadow: 1px 1px 5px #000; }
+    </style>
+</head>
+<body>
+
+    <!-- बैकग्राउंड आतिशबाज़ी कैनवस -->
+    <canvas id="fireworksCanvas"></canvas>
+
+    <div class="container">
+        <!-- 1. बधाई कार्ड (ऊपर) -->
+        <div id="badhaiCard">
+            <h2 id="cardTitle">बधाई हो!</h2>
+            <img id="userPhoto" src="" alt="फोटो">
+            <p id="cardMessage"></p>
+            <div class="from-tag">शुभचिंतक: <span id="senderName"></span></div>
+        </div>
+
+        <!-- शेयर और डाउनलोड बटन -->
+        <div class="btn-group" id="btnGroup">
+            <button class="btn btn-dl" onclick="downloadCard()">गैलरी में सेव करें ⬇️</button>
+            <button class="btn btn-wa" onclick="shareOnWhatsApp()">वॉट्सऐप पर भेजें 📱</button>
+        </div>
+
+        <!-- 2. फॉर्म (नीचे) -->
+        <div class="form-area">
+            <h1>✨ फोटो वाला बधाई कार्ड</h1>
+            
+            <label>आपका नाम:</label>
+            <input type="text" id="userInput" placeholder="अपना नाम लिखें">
+            
+            <label>किसको बधाई देनी है:</label>
+            <input type="text" id="friendInput" placeholder="दोस्त का नाम लिखें">
+
+            <label>उनकी फोटो चुनें (Optional):</label>
+            <input type="file" id="imageInput" accept="image/*" onchange="previewPhoto(event)">
+            
+            <label>अवसर चुनें:</label>
+            <select id="occasionSelect">
+                <option value="shadi">शादी मुबारक (Wedding)</option>
+                <option value="bday">जन्मदिन (Birthday)</option>
+                <option value="anni">सालगिरह (Anniversary)</option>
+                <option value="success">शानदार सफलता (Success)</option>
+            </select>
+            
+            <button class="create-btn" onclick="generateCard()">कार्ड तैयार करें ✨</button>
+        </div>
+
+        <div class="footer">डिजिटल बधाई मेकर - रंगीन आतिशबाज़ी के साथ</div>
+    </div>
+
+    <script>
+        // --- 1. रंगीन आतिशबाज़ी (Fireworks Logic) ---
+        const canvas = document.getElementById('fireworksCanvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x; this.y = y; this.color = color;
+                this.velocity = { x: (Math.random() - 0.5) * 8, y: (Math.random() - 0.5) * 8 };
+                this.alpha = 1;
+                this.friction = 0.95;
+            }
+            draw() {
+                ctx.globalAlpha = this.alpha;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+            }
+            update() {
+                this.velocity.x *= this.friction;
+                this.velocity.y *= this.friction;
+                this.x += this.velocity.x;
+                this.y += this.velocity.y;
+                this.alpha -= 0.01;
+            }
+        }
+
+        function createExplosion(x, y) {
+            const colors = ['#ff0040', '#00ff00', '#00ffff', '#ff00ff', '#ffff00', '#ff8000', '#ffffff'];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            for (let i = 0; i < 40; i++) {
+                particles.push(new Particle(x, y, color));
+            }
+        }
+
+        function animateFireworks() {
+            requestAnimationFrame(animateFireworks);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            particles.forEach((p, i) => {
+                if (p.alpha > 0) {
+                    p.update();
+                    p.draw();
+                } else {
+                    particles.splice(i, 1);
+                }
+            });
+
+            if (Math.random() < 0.05) {
+                createExplosion(Math.random() * canvas.width, Math.random() * canvas.height * 0.7);
+            }
+        }
+        animateFireworks();
+
+        // --- 2. कार्ड लॉजिक ---
+        const contentData = {
+            'shadi': { img: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=600', msg: 'शादी की बहुत-बहुत बधाई! आप दोनों सदा खुश रहें।', title: 'शादी मुबारक' },
+            'bday': { img: 'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=600', msg: 'जन्मदिन की हार्दिक शुभकामनाएँ! खुशियाँ आपके कदम चूमे।', title: 'जन्मदिन बधाई' },
+            'anni': { img: 'https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?w=600', msg: 'सालगिरह मुबारक हो! प्यार सदा बना रहे।', title: 'सालगिरह मुबारक' },
+            'success': { img: 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=600', msg: 'आपकी सफलता पर गर्व है! बहुत-बहुत बधाई।', title: 'शानदार जीत' }
+        };
+
+        function previewPhoto(event) {
+            const reader = new FileReader();
+            reader.onload = function() {
+                const img = document.getElementById('userPhoto');
+                img.src = reader.result;
+                img.style.display = "block";
+            }
+            reader.readAsDataURL(event.target.files[0]);
+        }
+
+        function generateCard() {
+            const from = document.getElementById('userInput').value;
+            const to = document.getElementById('friendInput').value;
+            const occ = document.getElementById('occasionSelect').value;
+
+            if(!from || !to) { alert("कृपया नाम लिखें!"); return; }
+
+            const data = contentData[occ];
+            document.getElementById('cardTitle').innerText = data.title;
+            document.getElementById('cardMessage').innerText = "प्रिय " + to + ", " + data.msg;
+            document.getElementById('senderName').innerText = from;
+            
+            const card = document.getElementById('badhaiCard');
+            card.style.backgroundImage = `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('${data.img}')`;
+            card.style.display = "flex";
+            document.getElementById('btnGroup').style.display = "flex";
+            
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            createExplosion(window.innerWidth/2, window.innerHeight/2);
+        }
+
+        function downloadCard() {
+            const card = document.getElementById('badhaiCard');
+            html2canvas(card, { useCORS: true, allowTaint: true }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'Mera_Badhai_Card.png';
+                link.href = canvas.toDataURL("image/png");
+                link.click();
+            });
+        }
+
+        function shareOnWhatsApp() {
+            const to = document.getElementById('friendInput').value;
+            const text = `*बधाई संदेश!* 🎉%0A%0Aप्रिय *${to}*, आपके लिए एक सुंदर बधाई कार्ड भेजा है। इसे देखने के लिए फोटो डाउनलोड करें या ऐप पर आएं!`;
+            window.open(`https://wa.me/?text=${text}`, '_blank');
+        }
+    </script>
+</body>
+</html>
+<script>
+  atOptions = {
+    'key' : '5ef61b9ce5db99a105f2eab3538cf716',
+    'format' : 'iframe',
+    'height' : 60,
+    'width' : 468,
+    'params' : {}
+  };
+</script>
+<script src="https://www.highperformanceformat.com/5ef61b9ce5db99a105f2eab3538cf716/invoke.js"></script>
